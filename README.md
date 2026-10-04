@@ -33,6 +33,10 @@
     ```bash
     source .venv/bin/activate
     ```
+  - Для Windows:
+    ```bash
+    venv\Scripts\Activate.ps1
+    ```
 3. Установите зависимости:
    ```bash
    pip install -r requirements.txt
