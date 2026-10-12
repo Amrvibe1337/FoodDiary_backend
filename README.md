@@ -29,6 +29,8 @@
    cd fastapi_ecommerce
    ```
 2. Создайте и активируйте виртуальное окружение:
+  - `python -m venv .venv`
+     
   - Для Linux/Mac:
     ```bash
     source .venv/bin/activate
