@@ -1,65 +1,99 @@
-from datetime import date
-from sqlalchemy import String, Integer, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
+from __future__ import annotations
+
+import datetime as dt
+from typing import TYPE_CHECKING
+
+from sqlalchemy import (
+    REAL,
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
 
-
-class MealType(Base):
-    __tablename__ = "meal_types"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+if TYPE_CHECKING:
+    from .food import Product, Recipe
+    from .user import User
 
 
 class DiaryEntry(Base):
     __tablename__ = "diary_entries"
+    __table_args__ = (
+        CheckConstraint("item_type IN ('product', 'recipe')", name="diary_item_type_check"),
+        CheckConstraint("calories >= 0", name="diary_calories_check"),
+        CheckConstraint("proteins >= 0", name="diary_proteins_check"),
+        CheckConstraint("fats >= 0", name="diary_fats_check"),
+        CheckConstraint("carbs >= 0", name="diary_carbs_check"),
+        CheckConstraint(
+            "(item_type = 'product' AND recipe_id IS NULL AND amount_grams BETWEEN 1 AND 5000) "
+            "OR (item_type = 'recipe' AND product_id IS NULL AND amount_grams IS NULL)",
+            name="diary_entries_item_consistency_check",
+        ),
+        Index("diary_entries_user_date_idx", "user_id", "date"),
+    )
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), 
-        nullable=False
+        ForeignKey("users.id", onupdate="NO ACTION", ondelete="CASCADE"),
+        nullable=False,
     )
-    
-    # тип приема пищи (по ТЗ необязательный, может быть None)
-    meal_type_id: Mapped[int | None] = mapped_column(
-        ForeignKey("meal_types.id"), 
-        nullable=True
-    )
-    
-    # либо продукт, либо рецепт (одно из них заполнено, второе None)
+    item_type: Mapped[str] = mapped_column(String(10), nullable=False)
     product_id: Mapped[int | None] = mapped_column(
-        ForeignKey("products.id"), 
-        nullable=True
+        ForeignKey("products.id", onupdate="NO ACTION", ondelete="SET NULL"),
+        nullable=True,
     )
     recipe_id: Mapped[int | None] = mapped_column(
-        ForeignKey("recipes.id"), 
-        nullable=True
+        ForeignKey("recipes.id", onupdate="NO ACTION", ondelete="SET NULL"),
+        nullable=True,
     )
-    
-    amount_grams: Mapped[int] = mapped_column(Integer, nullable=False)
-    
-    # дата приема пищи (по умолчанию текущий день)
-    date: Mapped[date] = mapped_column(Date, server_default=func.current_date(), nullable=False)
+    item_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    amount_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    calories: Mapped[float] = mapped_column(REAL, nullable=False)
+    proteins: Mapped[float] = mapped_column(REAL, nullable=False)
+    fats: Mapped[float] = mapped_column(REAL, nullable=False)
+    carbs: Mapped[float] = mapped_column(REAL, nullable=False)
+    date: Mapped[dt.date] = mapped_column(
+        Date, nullable=False, server_default=func.current_date()
+    )
+
+    user: Mapped[User] = relationship(back_populates="diary_entries")
+    product: Mapped[Product | None] = relationship(back_populates="diary_entries")
+    recipe: Mapped[Recipe | None] = relationship(back_populates="diary_entries")
 
 
 class Favorite(Base):
     __tablename__ = "favorites"
-
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), 
-        nullable=False
+    __table_args__ = (
+        UniqueConstraint("user_id", "product_id"),
+        UniqueConstraint("user_id", "recipe_id"),
+        CheckConstraint(
+            "(product_id IS NULL) <> (recipe_id IS NULL)",
+            name="favorites_product_xor_recipe_check",
+        ),
     )
-    
-    # звездочка ставится ЛИБО на продукт, ЛИБО на рецепт
+
+    id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", onupdate="NO ACTION", ondelete="CASCADE"),
+        nullable=False,
+    )
     product_id: Mapped[int | None] = mapped_column(
-        ForeignKey("products.id"), 
-        nullable=True
+        ForeignKey("products.id", onupdate="NO ACTION", ondelete="CASCADE"),
+        nullable=True,
     )
     recipe_id: Mapped[int | None] = mapped_column(
-        ForeignKey("recipes.id"), 
-        nullable=True
+        ForeignKey("recipes.id", onupdate="NO ACTION", ondelete="CASCADE"),
+        nullable=True,
     )
+
+    user: Mapped[User] = relationship(back_populates="favorites")
+    product: Mapped[Product | None] = relationship(back_populates="favorites")
+    recipe: Mapped[Recipe | None] = relationship(back_populates="favorites")
