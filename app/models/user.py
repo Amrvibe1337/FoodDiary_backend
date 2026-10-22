@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, Identity, Integer, String, func
+from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -23,11 +24,11 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(20), nullable=False, default="user", server_default="user"
     )
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(CITEXT, nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.current_timestamp()
     )
 
     diary_entries: Mapped[list[DiaryEntry]] = relationship(

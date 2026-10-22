@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Integer,
+    Index,
     Text,
     UniqueConstraint,
     func,
@@ -27,6 +28,8 @@ class Post(Base):
         CheckConstraint(
             "char_length(content) BETWEEN 1 AND 500", name="posts_content_length_check"
         ),
+        Index("posts_user_id_idx", "user_id"),
+        Index("posts_created_at_idx", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
@@ -36,7 +39,7 @@ class Post(Base):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.current_timestamp()
     )
 
     user: Mapped[User] = relationship(back_populates="posts")
@@ -55,6 +58,8 @@ class Comment(Base):
             "char_length(content) BETWEEN 1 AND 300",
             name="comments_content_length_check",
         ),
+        Index("comments_post_id_idx", "post_id"),
+        Index("comments_user_id_idx", "user_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
@@ -68,7 +73,7 @@ class Comment(Base):
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
+        DateTime(timezone=True), nullable=False, server_default=func.current_timestamp()
     )
 
     user: Mapped[User] = relationship(back_populates="comments")
@@ -77,7 +82,10 @@ class Comment(Base):
 
 class PostLike(Base):
     __tablename__ = "post_likes"
-    __table_args__ = (UniqueConstraint("post_id", "user_id"),)
+    __table_args__ = (
+        UniqueConstraint("post_id", "user_id"),
+        Index("post_likes_user_id_idx", "user_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     post_id: Mapped[int] = mapped_column(
