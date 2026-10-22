@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import datetime as dt
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    REAL,
     CheckConstraint,
     Date,
     ForeignKey,
     Identity,
     Index,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -38,6 +39,8 @@ class DiaryEntry(Base):
             name="diary_entries_item_consistency_check",
         ),
         Index("diary_entries_user_date_idx", "user_id", "date"),
+        Index("diary_entries_product_id_idx", "product_id"),
+        Index("diary_entries_recipe_id_idx", "recipe_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
@@ -56,10 +59,10 @@ class DiaryEntry(Base):
     )
     item_name: Mapped[str] = mapped_column(String(255), nullable=False)
     amount_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    calories: Mapped[float] = mapped_column(REAL, nullable=False)
-    proteins: Mapped[float] = mapped_column(REAL, nullable=False)
-    fats: Mapped[float] = mapped_column(REAL, nullable=False)
-    carbs: Mapped[float] = mapped_column(REAL, nullable=False)
+    calories: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    proteins: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    fats: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    carbs: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     date: Mapped[dt.date] = mapped_column(
         Date, nullable=False, server_default=func.current_date()
     )
@@ -78,6 +81,8 @@ class Favorite(Base):
             "(product_id IS NULL) <> (recipe_id IS NULL)",
             name="favorites_product_xor_recipe_check",
         ),
+        Index("favorites_product_id_idx", "product_id"),
+        Index("favorites_recipe_id_idx", "recipe_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
