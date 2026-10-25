@@ -105,11 +105,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
 
 async def get_current_client(current_user: UserModel = Depends(get_current_user)):
     """
-    Проверяет, что пользователь имеет роль 'client'.
+    Проверяет, что пользователь имеет роль 'user'.
     """
-    if current_user.role != "client":
+    if current_user.role != "user":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Only client can perform this action")
+                            detail="Only user can perform this action")
     return current_user
 
 
@@ -134,12 +134,12 @@ async def get_current_guest(current_user: UserModel = Depends(get_current_user))
     return current_user
 
 
-async def get_current_client_or_admin(current_user: UserModel = Depends(get_current_user)):
+async def get_current_user_or_admin(current_user: UserModel = Depends(get_current_user)):
     """
-    Проверяет, что пользователь имеет роль 'client' или 'admin'
+    Проверяет, что пользователь имеет роль 'user' или 'admin'
     """
-    if current_user.role not in ('client', 'admin'):
+    if current_user.role not in ('user', 'admin'):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Only client or admin can perform this action")
+                            detail="Only user or admin can perform this action")
     
     return current_user
