@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    REAL,
     CheckConstraint,
     ForeignKey,
     Identity,
@@ -27,6 +26,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
+    slug: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     category_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 
     products: Mapped[list[Product]] = relationship(
@@ -50,6 +50,7 @@ class Product(Base):
         nullable=False,
     )
     product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    image_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     calories: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     proteins: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     fats: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
@@ -71,23 +72,16 @@ class Recipe(Base):
     __tablename__ = "recipes"
     __table_args__ = (
         CheckConstraint(
-            "category IN ('массонабор', 'похудение', 'баланс')",
+            "category IN ('mass', 'loss', 'balance')",
             name="recipes_category_check",
         ),
-        CheckConstraint("calories >= 0", name="recipes_calories_check"),
-        CheckConstraint("proteins >= 0", name="recipes_proteins_check"),
-        CheckConstraint("fats >= 0", name="recipes_fats_check"),
-        CheckConstraint("carbs >= 0", name="recipes_carbs_check"),
     )
 
     id: Mapped[int] = mapped_column(Integer, Identity(always=False), primary_key=True)
     recipe_name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    calories: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
-    proteins: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
-    fats: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
-    carbs: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    image_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     steps: Mapped[list[RecipeStep]] = relationship(
         back_populates="recipe",
@@ -128,7 +122,10 @@ class RecipeIngredient(Base):
     __tablename__ = "recipe_ingredients"
     __table_args__ = (
         UniqueConstraint("recipe_id", "product_id"),
-        CheckConstraint("amount_grams > 0", name="recipe_ingredients_amount_check"),
+        CheckConstraint(
+            "amount_grams > 0 AND amount_grams < 5000",
+            name="recipe_ingredients_amount_check",
+        ),
         Index("recipe_ingredients_product_id_idx", "product_id"),
     )
 
@@ -141,7 +138,7 @@ class RecipeIngredient(Base):
         ForeignKey("products.id", onupdate="NO ACTION", ondelete="RESTRICT"),
         nullable=False,
     )
-    amount_grams: Mapped[float] = mapped_column(REAL, nullable=False)
+    amount_grams: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
 
     recipe: Mapped[Recipe] = relationship(back_populates="ingredients")
     product: Mapped[Product] = relationship(back_populates="recipe_ingredients")
