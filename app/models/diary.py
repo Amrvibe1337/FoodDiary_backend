@@ -34,7 +34,7 @@ class DiaryEntry(Base):
         CheckConstraint("fats >= 0", name="diary_fats_check"),
         CheckConstraint("carbs >= 0", name="diary_carbs_check"),
         CheckConstraint(
-            "(item_type = 'product' AND recipe_id IS NULL AND amount_grams BETWEEN 1 AND 5000) "
+            "(item_type = 'product' AND recipe_id IS NULL AND amount_grams > 0 AND amount_grams < 5000) "
             "OR (item_type = 'recipe' AND product_id IS NULL AND amount_grams IS NULL)",
             name="diary_entries_item_consistency_check",
         ),
@@ -58,7 +58,7 @@ class DiaryEntry(Base):
         nullable=True,
     )
     item_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    amount_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    amount_grams: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     calories: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     proteins: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     fats: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
