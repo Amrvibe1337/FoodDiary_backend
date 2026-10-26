@@ -12,7 +12,7 @@ from app.db_depends import get_async_db
 
  
 # Создаём контекст для хеширования с использованием bcrypt
-pwd_context = CryptContext(schemas=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
