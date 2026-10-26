@@ -30,8 +30,8 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_async_db)
     db_user = UserModel(
         name=user.name,
         email=user.email,
-        hashed_password=hash_password(user.password),
-        role=user.role
+        password_hash=hash_password(user.password),
+        role="user"
     )
 
     # Добавление в сессию и сохранение в базе
