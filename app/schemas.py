@@ -6,6 +6,8 @@ from typing import Annotated, Literal
 from fastapi import Form
 
 
+RecipeCategory = Literal["mass", "loss", "balance"]
+
 class UserCreate(BaseModel):
     """
     Модель для регистрации нового пользователя
@@ -202,3 +204,64 @@ class LikeOut(BaseModel):
 
     liked: bool
     likes_count: int
+
+
+class RecipeIngredientIn(BaseModel):
+    """Ингредиент при создании/редактировании рецепта админом."""
+    product_id: int
+    # БД: amount_grams > 0 AND < 5000
+    amount_grams: Decimal = Field(gt=0, lt=5000)
+
+
+class RecipeStepIn(BaseModel):
+    step_number: int = Field(gt=0)
+    description: str = Field(min_length=1)
+
+
+class RecipeCreate(BaseModel):
+    recipe_name: str = Field(min_length=1, max_length=255)
+    category: RecipeCategory
+    description: str | None = None
+    image_path: str | None = None
+    ingredients: list[RecipeIngredientIn] = Field(min_length=1)
+    steps: list[RecipeStepIn] = Field(min_length=1)
+
+
+class RecipeUpdate(BaseModel):
+    recipe_name: str | None = Field(default=None, min_length=1, max_length=255)
+    category: RecipeCategory | None = None
+    description: str | None = None
+    image_path: str | None = None
+    ingredients: list[RecipeIngredientIn] | None = None
+    steps: list[RecipeStepIn] | None = None
+
+
+class RecipeMacrosOut(BaseModel):
+    """КБЖУ на одну порцию. В БД servings_count нет, поэтому = весь рецепт."""
+    calories: float
+    proteins: float
+    fats: float
+    carbs: float
+
+
+class RecipeIngredientOut(BaseModel):
+    product_id: int
+    product_name: str
+    amount_grams: float
+
+
+class RecipeStepOut(BaseModel):
+    step_number: int
+    description: str
+
+
+class RecipeOut(BaseModel):
+    id: int
+    recipe_name: str
+    category: RecipeCategory
+    description: str | None
+    image_path: str | None
+    macros: RecipeMacrosOut
+    ingredients: list[RecipeIngredientOut]
+    steps: list[RecipeStepOut]
+    is_favorite: bool = False

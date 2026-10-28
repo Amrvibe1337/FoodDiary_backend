@@ -8,7 +8,7 @@ from app.auth import get_current_user
 from app.db_depends import get_async_db
 from app.models import Favorite, Product, Recipe
 from app.models.user import User as UserModel
-from app.nutrition import recipes_nutrition
+from app.utils.nutrition import recipes_nutrition
 from app.schemas import (
     FavoriteCreate,
     FavoriteOut,
