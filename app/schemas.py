@@ -149,3 +149,56 @@ class FavoriteOut(BaseModel):
     recipe_id: int | None
     product: FavoriteProductOut | None = None
     recipe: FavoriteRecipeOut | None = None
+
+
+class PostCreate(BaseModel):
+    """
+    Текст нового поста.
+    """
+
+    content: str
+
+
+class PostOut(BaseModel):
+    """
+    Пост в ленте: автор, счётчики и признак лайка текущего пользователя.
+    """
+
+    id: int
+    user_id: int
+    author_name: str
+    content: str
+    created_at: dt.datetime
+    likes_count: int
+    liked: bool
+    comments_count: int
+
+
+class CommentCreate(BaseModel):
+    """
+    Текст нового комментария.
+    """
+
+    content: str
+
+
+class CommentOut(BaseModel):
+    """
+    Комментарий к посту.
+    """
+
+    id: int
+    post_id: int
+    user_id: int
+    author_name: str
+    content: str
+    created_at: dt.datetime
+
+
+class LikeOut(BaseModel):
+    """
+    Состояние лайка после операции.
+    """
+
+    liked: bool
+    likes_count: int
