@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI  
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import cors_origins
 from app.routers import favorites, meals, posts, profiles, users, recipes, categories, products
@@ -23,6 +26,10 @@ app.include_router(posts.router)
 app.include_router(recipes.router)
 app.include_router(products.router)
 app.include_router(categories.router)
+
+MEDIA_DIR = Path(__file__).resolve().parent.parent / "media"
+MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 @app.get("/")
 async def main():
