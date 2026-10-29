@@ -29,7 +29,8 @@ async def list_recipes(
     """UC-10. Список рецептов с поиском и фильтром по категории."""
     stmt = select(Recipe).options(*_load_options())
     if search:
-        stmt = stmt.where(Recipe.recipe_name.ilike(f"%{search}%"))
+        pattern = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Recipe.recipe_name.ilike(f"%{pattern}%", escape="\\"))
     if category:
         stmt = stmt.where(Recipe.category == category)
     stmt = stmt.order_by(Recipe.recipe_name)
@@ -106,25 +107,43 @@ async def update_recipe(
     """UC-21. Изменение рецепта. Если переданы ingredients/steps — полная замена."""
     recipe = await _load_recipe_full(db, recipe_id)
 
+    for field in ("recipe_name", "category", "ingredients", "steps"):
+        if field in payload.model_fields_set and getattr(payload, field) is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"{field} cannot be null",
+            )
+
     if payload.recipe_name is not None:
         recipe.recipe_name = payload.recipe_name
     if payload.category is not None:
         recipe.category = payload.category
-    if payload.description is not None:
+    if "description" in payload.model_fields_set:
         recipe.description = payload.description
-    if payload.image_path is not None:
+    if "image_path" in payload.model_fields_set:
         recipe.image_path = payload.image_path
 
     if payload.ingredients is not None:
         _validate_unique_ingredients(payload.ingredients)
         await _ensure_products_exist(db, [i.product_id for i in payload.ingredients])
+
+    if payload.steps is not None:
+        _validate_unique_steps(payload.steps)
+
+    if payload.ingredients is not None:
+        recipe.ingredients.clear()
+    if payload.steps is not None:
+        recipe.steps.clear()
+    if payload.ingredients is not None or payload.steps is not None:
+        await db.flush()
+
+    if payload.ingredients is not None:
         recipe.ingredients = [
             RecipeIngredient(product_id=i.product_id, amount_grams=i.amount_grams)
             for i in payload.ingredients
         ]
 
     if payload.steps is not None:
-        _validate_unique_steps(payload.steps)
         recipe.steps = [
             RecipeStep(step_number=s.step_number, description=s.description)
             for s in payload.steps

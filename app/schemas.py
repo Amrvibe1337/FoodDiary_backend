@@ -1,5 +1,5 @@
 import datetime as dt
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, StringConstraints
 from decimal import Decimal
 from datetime import datetime
 from typing import Annotated, Literal
@@ -7,6 +7,10 @@ from fastapi import Form
 
 
 RecipeCategory = Literal["mass", "loss", "balance"]
+NameStr = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=255),
+]
 
 class UserCreate(BaseModel):
     """
@@ -219,7 +223,7 @@ class RecipeStepIn(BaseModel):
 
 
 class RecipeCreate(BaseModel):
-    recipe_name: str = Field(min_length=1, max_length=255)
+    recipe_name: NameStr
     category: RecipeCategory
     description: str | None = None
     image_path: str | None = None
@@ -228,12 +232,12 @@ class RecipeCreate(BaseModel):
 
 
 class RecipeUpdate(BaseModel):
-    recipe_name: str | None = Field(default=None, min_length=1, max_length=255)
+    recipe_name: NameStr | None = None
     category: RecipeCategory | None = None
     description: str | None = None
     image_path: str | None = None
-    ingredients: list[RecipeIngredientIn] | None = None
-    steps: list[RecipeStepIn] | None = None
+    ingredients: list[RecipeIngredientIn] | None = Field(default=None, min_length=1)
+    steps: list[RecipeStepIn] | None = Field(default=None, min_length=1)
 
 
 class RecipeMacrosOut(BaseModel):
@@ -291,7 +295,7 @@ class ProductOut(BaseModel):
 
 
 class ProductCreate(BaseModel):
-    product_name: str = Field(min_length=1, max_length=255)
+    product_name: NameStr
     category_id: int
     calories: Decimal = Field(ge=0)
     proteins: Decimal = Field(ge=0)
@@ -301,7 +305,7 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    product_name: str | None = Field(default=None, min_length=1, max_length=255)
+    product_name: NameStr | None = None
     category_id: int | None = None
     calories: Decimal | None = Field(default=None, ge=0)
     proteins: Decimal | None = Field(default=None, ge=0)

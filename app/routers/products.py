@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user, get_current_admin
@@ -25,7 +26,8 @@ async def list_products(
     """UC-08. Список продуктов с КБЖУ на 100 г, поиск по названию, фильтр по slug категории."""
     stmt = select(Product)
     if search:
-        stmt = stmt.where(Product.product_name.ilike(f"%{search}%"))
+        pattern = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Product.product_name.ilike(f"%{pattern}%", escape="\\"))
     if category:
         stmt = stmt.join(Category, Category.id == Product.category_id).where(Category.slug == category)
     stmt = stmt.order_by(Product.product_name)
@@ -104,14 +106,24 @@ async def update_product(
     if payload.category_id is not None:
         await _ensure_category_exists(db, payload.category_id)
 
-    # Обновляем только присланные поля (PATCH-семантика)
     data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        if value is None and field != "image_path":
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"{field} cannot be null",
+            )
+
     for field, value in data.items():
         setattr(product, field, value)
 
     await db.commit()
     await db.refresh(product)
-    return ProductOut.model_validate(product)
+
+    fav = await _favorite_ids(db, current_admin.id, [product.id])
+    return ProductOut.model_validate(product).model_copy(
+        update={"is_favorite": product.id in fav}
+    )
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -144,5 +156,12 @@ async def delete_product(
         )
 
     await db.delete(product)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Product is used in recipes; remove it from recipes first",
+        )
     return None
