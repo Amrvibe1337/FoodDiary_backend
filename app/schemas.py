@@ -265,3 +265,46 @@ class RecipeOut(BaseModel):
     ingredients: list[RecipeIngredientOut]
     steps: list[RecipeStepOut]
     is_favorite: bool = False
+
+
+class CategoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    category_name: str
+    slug: str
+
+
+class ProductOut(BaseModel):
+    """Продукт в списке/карточке: КБЖУ на 100 г."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    category_id: int
+    product_name: str
+    image_path: str | None
+    calories: float
+    proteins: float
+    fats: float
+    carbs: float
+    is_favorite: bool = False
+
+
+class ProductCreate(BaseModel):
+    product_name: str = Field(min_length=1, max_length=255)
+    category_id: int
+    calories: Decimal = Field(ge=0)
+    proteins: Decimal = Field(ge=0)
+    fats: Decimal = Field(ge=0)
+    carbs: Decimal = Field(ge=0)
+    image_path: str | None = None
+
+
+class ProductUpdate(BaseModel):
+    product_name: str | None = Field(default=None, min_length=1, max_length=255)
+    category_id: int | None = None
+    calories: Decimal | None = Field(default=None, ge=0)
+    proteins: Decimal | None = Field(default=None, ge=0)
+    fats: Decimal | None = Field(default=None, ge=0)
+    carbs: Decimal | None = Field(default=None, ge=0)
+    image_path: str | None = None
