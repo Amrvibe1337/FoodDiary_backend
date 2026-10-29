@@ -11,10 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config import DATABASE_URL
 from app.models import Category, Product, Recipe, RecipeIngredient, RecipeStep
-from scripts.seed_data import CATEGORIES, PRODUCTS, RECIPES, RecipeSeed
+from scripts.seed_data import (
+    CATEGORIES,
+    PRODUCTS,
+    PRODUCT_IMAGES,
+    RECIPES,
+    RECIPE_IMAGES,
+    RecipeSeed,
+)
 
 RECIPE_CATEGORIES = {"mass", "loss", "balance"}
 Nutrition = dict[str, tuple[Decimal, Decimal, Decimal, Decimal]]
+MEDIA_DIR = Path(__file__).resolve().parent.parent / "media"
 
 
 def validate() -> None:
@@ -64,6 +72,25 @@ def validate() -> None:
                 raise ValueError(
                     f"рецепт «{recipe.name}»: недопустимая граммовка {grams}"
                 )
+
+    missing_product_images = [
+        product.name for product in PRODUCTS if product.name not in PRODUCT_IMAGES
+    ]
+    if missing_product_images:
+        raise ValueError(f"нет пути к фото для продуктов: {missing_product_images}")
+
+    missing_recipe_images = [
+        recipe.name for recipe in RECIPES if recipe.name not in RECIPE_IMAGES
+    ]
+    if missing_recipe_images:
+        raise ValueError(f"нет пути к фото для рецептов: {missing_recipe_images}")
+
+
+def resolve_image(mapping: dict[str, str], name: str) -> str | None:
+    path = mapping.get(name)
+    if path is None or not (MEDIA_DIR / path).exists():
+        return None
+    return path
 
 
 def build_nutrition(existing: dict[str, Product]) -> Nutrition:
@@ -170,6 +197,7 @@ async def apply_seed(
         product = Product(
             category_id=categories[seed_product.category].id,
             product_name=seed_product.name,
+            image_path=resolve_image(PRODUCT_IMAGES, seed_product.name),
             calories=Decimal(seed_product.calories),
             proteins=Decimal(seed_product.proteins),
             fats=Decimal(seed_product.fats),
@@ -189,6 +217,7 @@ async def apply_seed(
             recipe_name=seed_recipe.name,
             category=seed_recipe.category,
             description=seed_recipe.description,
+            image_path=resolve_image(RECIPE_IMAGES, seed_recipe.name),
         )
         session.add(recipe)
         await session.flush()
@@ -255,6 +284,27 @@ async def main(dry_run: bool) -> None:
     ):
         created, skipped = stats[key]
         print(f"{label}: создано {created}, пропущено {skipped}")
+
+    attached_products = sum(
+        resolve_image(PRODUCT_IMAGES, name) is not None for name in PRODUCT_IMAGES
+    )
+    attached_recipes = sum(
+        resolve_image(RECIPE_IMAGES, name) is not None for name in RECIPE_IMAGES
+    )
+    print(f"Фото продуктов: {attached_products} из {len(PRODUCT_IMAGES)}")
+    print(f"Фото рецептов: {attached_recipes} из {len(RECIPE_IMAGES)}")
+
+    missing = [
+        name
+        for name in PRODUCT_IMAGES
+        if resolve_image(PRODUCT_IMAGES, name) is None
+    ] + [
+        name
+        for name in RECIPE_IMAGES
+        if resolve_image(RECIPE_IMAGES, name) is None
+    ]
+    if missing:
+        print("Файлы не найдены:", ", ".join(missing))
 
     if dry_run:
         print("Режим проверки: в базу ничего не записано")
