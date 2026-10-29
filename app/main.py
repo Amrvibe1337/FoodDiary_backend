@@ -1,7 +1,7 @@
 from fastapi import FastAPI  
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.config import cors_origins
 from app.routers import favorites, meals, posts, profiles, users, recipes, categories, products
 
 app = FastAPI(title="Food Diary - Дневник питания",
@@ -9,7 +9,7 @@ app = FastAPI(title="Food Diary - Дневник питания",
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,       # список, не "*"
+    allow_origins=cors_origins,       # список, не "*"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
