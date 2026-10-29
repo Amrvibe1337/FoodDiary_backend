@@ -25,8 +25,8 @@
 
 1. Клонируйте репозиторий:
    ```bash
-   git clone https://github.com/AmirHan007/fastapi_ecommerce.git
-   cd fastapi_ecommerce
+   git clone https://github.com/Amrvibe1337/FoodDiary_backend.git
+   cd FoodDiary_backend
    ```
 2. Создайте и активируйте виртуальное окружение:
   - `python -m venv .venv`
@@ -48,7 +48,7 @@
    cp .env.example .env
    ```
    В .env измените DATABASE_URL и SECRET_KEY.
-   Для создания своего `SECRET_KEY` надо выполнить:
+   Для создания своего `SECRET_KEY`:
    ```bash
    openssl rand -hex 32
    ```
